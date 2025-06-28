@@ -28,19 +28,47 @@ public class Main {
     }
 
     public static void handleConnection(Socket clientConnection) throws IOException {
-        try {
-            InputStream inputStream = clientConnection.getInputStream(); // to get the byte-based input stream from the client socket
-            InputStreamReader inputStreamReader = new InputStreamReader(inputStream); // to wrap it with InputStreamReader to convert bytes to characters
-            BufferedReader in = new BufferedReader(inputStreamReader); // to wrap the InputStreamReader with BufferedReader for efficient reading of lines
+        try (
+                InputStream inputStream = clientConnection.getInputStream(); // to get the byte-based input stream from the client socket
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream); // to wrap it with InputStreamReader to convert bytes to characters
+                BufferedReader in = new BufferedReader(inputStreamReader); // to wrap the InputStreamReader with BufferedReader for efficient reading of lines
 
-            OutputStream outputStream = clientConnection.getOutputStream();
-            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
-            BufferedWriter out = new BufferedWriter(outputStreamWriter);
+                OutputStream outputStream = clientConnection.getOutputStream();
+                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+                BufferedWriter out = new BufferedWriter(outputStreamWriter);
+                ) {
 
-            out.write("HTTP/1.1 200 OK\r\n\r\n");
+            // Read the request: e.g. "GET /path HTTP/1.1"
+            String request = in.readLine();
+            System.out.println("Incoming request: " + request);
+
+            if(request == null || request.isEmpty()) return;
+
+            String[] parts = request.split(" ");
+            if(parts.length < 2) {
+                System.out.println("Invalid request.");
+                return;
+            }
+
+            String method = parts[0];
+            String urlPath = parts[1];
+
+            System.out.println("Method: " + method + ", URL Path: " + urlPath);
+
+            if("/".equals(urlPath)) {
+                String response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+                out.write(response);
+            } else {
+                String response = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+                out.write(response);
+            }
+
             out.flush();
+
         } catch (IOException e){
             System.out.println("IOException: " + e.getMessage());
+        } finally {
+            clientConnection.close();
         }
     }
 }
