@@ -36,16 +36,16 @@ public class Main {
                 OutputStream outputStream = clientConnection.getOutputStream();
                 OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
                 BufferedWriter out = new BufferedWriter(outputStreamWriter);
-                ) {
+        ) {
 
             // Read the request: e.g. "GET /path HTTP/1.1"
             String request = in.readLine();
             System.out.println("Incoming request: " + request);
 
-            if(request == null || request.isEmpty()) return;
+            if (request == null || request.isEmpty()) return;
 
             String[] parts = request.split(" ");
-            if(parts.length < 2) {
+            if (parts.length < 2) {
                 System.out.println("Invalid request.");
                 return;
             }
@@ -55,9 +55,16 @@ public class Main {
 
             System.out.println("Method: " + method + ", URL Path: " + urlPath);
 
-            if("/".equals(urlPath)) {
-                String response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+            if (urlPath.startsWith("/echo/")) {
+                String responseBody = urlPath.substring("/echo/".length());
+                System.out.println("Response body: " + responseBody);
+
+                String response = String.format("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+                        responseBody.length(), responseBody);
+
                 out.write(response);
+            } else if ("/".equals(urlPath)) {
+                out.write("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n");
             } else {
                 String response = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
                 out.write(response);
@@ -65,7 +72,7 @@ public class Main {
 
             out.flush();
 
-        } catch (IOException e){
+        } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
         } finally {
             clientConnection.close();
