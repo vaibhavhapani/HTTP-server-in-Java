@@ -52,10 +52,30 @@ public class Main {
 
             String method = parts[0];
             String urlPath = parts[1];
-
             System.out.println("Method: " + method + ", URL Path: " + urlPath);
 
-            if (urlPath.startsWith("/echo/")) {
+            String header = in.readLine();
+            String userAgent = "";
+
+            while (header != null && !header.isEmpty()) {
+                System.out.println("Header: " + header);
+
+                if (header.toLowerCase().startsWith("user-agent: ")) {
+                    userAgent = header.split(":", 2)[1].trim();
+                    System.out.println("userAgent: " + userAgent);
+                }
+
+                header = in.readLine();
+            }
+
+            if ("/user-agent".equals((urlPath))) {
+                String responseBody = userAgent;
+                String response = String.format(
+                        "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+                        responseBody.length(), responseBody
+                );
+                out.write(response);
+            } else if (urlPath.startsWith("/echo/")) {
                 String responseBody = urlPath.substring("/echo/".length());
                 System.out.println("Response body: " + responseBody);
 
