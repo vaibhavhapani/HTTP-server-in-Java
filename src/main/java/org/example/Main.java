@@ -11,9 +11,9 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("Logs from your program will appear here!");
 
-        for(int i = 0; i < args.length-1; i++) {
-            if(args[i].equals("--directory")) {
-                servingDirectory = args[i+1];
+        for (int i = 0; i < args.length - 1; i++) {
+            if (args[i].equals("--directory")) {
+                servingDirectory = args[i + 1];
                 break;
             }
         }
@@ -78,6 +78,7 @@ public class Main {
 
             String header = in.readLine();
             String userAgent = "";
+            int contentLength = 0;
 
             while (header != null && !header.isEmpty()) {
                 System.out.println("Header: " + header);
@@ -85,6 +86,8 @@ public class Main {
                 if (header.toLowerCase().startsWith("user-agent: ")) {
                     userAgent = header.split(":", 2)[1].trim();
                     System.out.println("userAgent: " + userAgent);
+                } else if (header.toLowerCase().startsWith("content-length:")) {
+                    contentLength = Integer.parseInt(header.split(":")[1].trim());
                 }
 
                 header = in.readLine();
@@ -98,7 +101,7 @@ public class Main {
                 );
                 out.write(response);
             } else if (urlPath.startsWith("/files/")) {
-                if(servingDirectory == null) {
+                if (servingDirectory == null) {
                     System.out.println("Missing --directory argument");
                     return;
                 }
@@ -106,7 +109,21 @@ public class Main {
                 String filename = urlPath.substring("/files/".length());
                 File file = new File(servingDirectory, filename);
 
-                if(file.exists() && file.isFile()) {
+                if ("PUT".equals(method)) {
+
+                    char[] body = new char[contentLength];
+                    in.read(body, 0, contentLength);
+                    String requestBody = new String(body);
+
+                    try (FileWriter fw = new FileWriter(file)) {
+                        fw.write(requestBody);
+                    }
+
+                    out.write("HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n");
+                    return;
+                }
+
+                if (file.exists() && file.isFile()) {
                     byte[] content = Files.readAllBytes(file.toPath());
 
                     out.write("HTTP/1.1 200 OK\r\n");
