@@ -67,14 +67,28 @@ public class Main {
             if (request == null || request.isEmpty()) return;
 
             String[] parts = request.split(" ");
-            if (parts.length < 2) {
+            if (parts.length < 3) {
                 System.out.println("Invalid request.");
+                out.write("HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
+                out.flush();
                 return;
             }
 
             String method = parts[0];
             String urlPath = parts[1];
+            String httpVersion = parts[2];
             System.out.println("Method: " + method + ", URL Path: " + urlPath);
+
+            if (!httpVersion.equals("HTTP/1.1")) {
+                System.out.println("Invalid http version.");
+                out.write("HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
+                return;
+            }
+
+            if (!method.equals("GET") && !method.equals("PUT")) {
+                out.write("HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 0\r\n\r\n");
+                return;
+            }
 
             String header = in.readLine();
             String userAgent = "";
