@@ -82,28 +82,71 @@ public class HttpRequestHandler {
         String filename = path.substring("/files/".length());
         File file = new File(directory, filename);
 
-        if (method.equals("PUT")) {
-            char[] buffer = new char[contentLength];
-            in.read(buffer, 0, contentLength);
-            String body = new String(buffer);
+        switch (method) {
+            case "PUT": {
+                char[] buffer = new char[contentLength];
+                in.read(buffer, 0, contentLength);
+                String body = new String(buffer);
 
-            try (FileWriter writer = new FileWriter(file)) {
-                writer.write(body);
+                try (FileWriter writer = new FileWriter(file)) {
+                    writer.write(body);
+                }
+
+                HttpUtils.sendResponse(out, "201 Created", null, "");
+                break;
             }
 
-            HttpUtils.sendResponse(out, "201 Created", null, "");
-        } else if (file.exists() && file.isFile()) {
-            byte[] content = Files.readAllBytes(file.toPath());
+            case "PATCH": {
+                if (file.exists() && file.isFile()) {
+                    char[] buffer = new char[contentLength];
+                    in.read(buffer, 0, contentLength);
+                    String body = new String(buffer);
 
-            out.write("HTTP/1.1 200 OK\r\n");
-            out.write("Content-Type: application/octet-stream\r\n");
-            out.write("Content-Length: " + content.length + "\r\n");
-            out.write("\r\n");
-            out.flush();
+                    try (FileWriter writer = new FileWriter(file, true)) { // true → append mode
+                        writer.write(body);
+                    }
 
-            clientSocket.getOutputStream().write(content);
-        } else {
-            HttpUtils.sendResponse(out, "404 Not Found", null, "");
+                    HttpUtils.sendResponse(out, "204 No Content", null, "");
+                } else {
+                    HttpUtils.sendResponse(out, "404 Not Found", null, "");
+                }
+                break;
+            }
+
+            case "DELETE": {
+                if (file.exists() && file.isFile()) {
+                    if (file.delete()) {
+                        HttpUtils.sendResponse(out, "200 OK", null, "");
+                    } else {
+                        HttpUtils.sendResponse(out, "500 Internal Server Error", null, "");
+                    }
+                } else {
+                    HttpUtils.sendResponse(out, "404 Not Found", null, "");
+                }
+                break;
+            }
+
+            case "GET": {
+                if (file.exists() && file.isFile()) {
+                    byte[] content = Files.readAllBytes(file.toPath());
+
+                    out.write("HTTP/1.1 200 OK\r\n");
+                    out.write("Content-Type: application/octet-stream\r\n");
+                    out.write("Content-Length: " + content.length + "\r\n");
+                    out.write("\r\n");
+                    out.flush();
+
+                    clientSocket.getOutputStream().write(content);
+                } else {
+                    HttpUtils.sendResponse(out, "404 Not Found", null, "");
+                }
+                break;
+            }
+
+            default: {
+                HttpUtils.sendResponse(out, "405 Method Not Allowed", null, "");
+                break;
+            }
         }
     }
 }
