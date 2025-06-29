@@ -17,10 +17,20 @@ public class Main {
             // To avoid "Address already in use" error.
             serverSocket.setReuseAddress(true);
 
-            Socket clientConnection = serverSocket.accept(); // Wait for connection from client.
-            System.out.println("accepted new connection");
+            while (true) {
+                Socket clientConnection = serverSocket.accept(); // Wait for connection from client.
+                System.out.println("accepted new connection");
 
-            handleConnection(clientConnection);
+                // Spawns a thread for every incoming connection
+                Thread thread = new Thread(() -> {
+                    try {
+                        handleConnection(clientConnection);
+                    } catch (IOException e) {
+                        System.out.println("Thread error: " + e.getMessage());
+                    }
+                });
+                thread.start();
+            }
 
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
@@ -28,6 +38,8 @@ public class Main {
     }
 
     public static void handleConnection(Socket clientConnection) throws IOException {
+        System.out.println("\nHandling on thread: " + Thread.currentThread().getName());
+
         try (
                 InputStream inputStream = clientConnection.getInputStream(); // to get the byte-based input stream from the client socket
                 InputStreamReader inputStreamReader = new InputStreamReader(inputStream); // to wrap it with InputStreamReader to convert bytes to characters
