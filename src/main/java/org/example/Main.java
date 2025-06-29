@@ -3,10 +3,20 @@ package org.example;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
 
 public class Main {
+    private static String servingDirectory;
+
     public static void main(String[] args) {
         System.out.println("Logs from your program will appear here!");
+
+        for(int i = 0; i < args.length-1; i++) {
+            if(args[i].equals("--directory")) {
+                servingDirectory = args[i+1];
+                break;
+            }
+        }
 
         try {
             // Create a server socket that listens on port 4221
@@ -87,6 +97,29 @@ public class Main {
                         responseBody.length(), responseBody
                 );
                 out.write(response);
+            } else if (urlPath.startsWith("/files/")) {
+                if(servingDirectory == null) {
+                    System.out.println("Missing --directory argument");
+                    return;
+                }
+
+                String filename = urlPath.substring("/files/".length());
+                File file = new File(servingDirectory, filename);
+
+                if(file.exists() && file.isFile()) {
+                    byte[] content = Files.readAllBytes(file.toPath());
+
+                    out.write("HTTP/1.1 200 OK\r\n");
+                    out.write("Content-Type: application/octet-stream\r\n");
+                    out.write("Content-Length: " + content.length + "\r\n");
+                    out.write("\r\n");
+                    out.flush();
+
+                    clientConnection.getOutputStream().write(content);
+                } else {
+                    out.write("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
+                }
+
             } else if (urlPath.startsWith("/echo/")) {
                 String responseBody = urlPath.substring("/echo/".length());
                 System.out.println("Response body: " + responseBody);
